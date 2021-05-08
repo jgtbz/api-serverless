@@ -1,0 +1,141 @@
+service: api
+frameworkVersion: '2'
+useDotenv: true
+provider:
+  name: aws
+  runtime: nodejs12.x
+  stage: ${opt:stage, 'dev'}
+  memorySize: 128
+  region: ${opt:region, 'us-east-1'}
+  lambdaHashingVersion: '20201221'
+plugins:
+  - serverless-dotenv-plugin
+  - serverless-webpack
+  - serverless-pseudo-parameters
+  - serverless-offline
+  - serverless-offline-scheduler
+  - serverless-offline-sqs
+custom:
+  settings:
+    region: '#{AWS::Region}'
+    accountId: AKIAVMY5N4YEYU63FBEZ
+    # accountId: AKIAVMY5N4YET2KW77FF
+    stage: ${opt:stage, 'dev'}
+    debug: true
+  webpack:
+    packager: 'npm'
+    includeModules:
+      forceExclude:
+        - aws-sdk
+        - '@babel/runtime'
+resources:
+  Resources:
+    Topic:
+      Type: AWS::SNS::Topic
+      Properties:
+        TopicName: "basic-functions-hello-${self:provider.stage}"
+    Queue:
+      Type: "AWS::SQS::Queue"
+      Properties:
+        QueueName: "Queue"
+    Subscription:
+      Type: AWS::SNS::Subscription
+      Properties:
+        TopicArn:
+          Fn::GetAtt:
+            - Topic
+        Endpoint:
+          Fn::GetAtt:
+            - Queue
+            - Arn
+        Protocol: sqs
+    customRoleLambda:
+      Type: AWS::IAM::Role
+      Properties:
+        RoleName: customRole-${self:custom.settings.stage}
+        AssumeRolePolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service:
+                  - lambda.amazonaws.com
+              Action: sts:AssumeRole
+        Policies:
+          - PolicyName: custom-role-${self:custom.settings.stage}
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                - Effect: Allow
+                  Action:
+                    - logs:CreateLogGroup
+                    - logs:CreateLogStream
+                    - logs:PutLogEvents
+                  Resource:
+                    Fn::Join:
+                      - ':'
+                      - - 'arn:aws:logs'
+                        - '${self:custom.settings.region}'
+                        - '${self:custom.settings.accountId}'
+                        - 'log-group:/aws/lambda/*:*:*'
+                - Effect: 'Allow'
+                  Action:
+                    - 'ec2:DescribeNetworkInterfaces'
+                    - 'ec2:CreateNetworkInterface'
+                    - 'ec2:DeleteNetworkInterface'
+                    - 'ec2:DescribeInstances'
+                    - 'ec2:AttachNetworkInterface'
+                    - 'lambda:CreateEventSourceMapping'
+                    - 'lambda:ListEventSourceMappings'
+                    - 'lambda:ListFunctions'
+                    - 'sqs:DeleteMessage'
+                    - 'sqs:GetQueueAttributes'
+                    - 'sqs:ReceiveMessage'
+                  Resource: '*'
+                - Effect: 'Allow'
+                  Action:
+                    - 's3:PutObject'
+                  Resource:
+                    Fn::Join:
+                      - ''
+                      - - 'arn:aws:s3:::'
+                        - 'dlvery-${self:custom.settings.stage}'
+                        - '/*'
+functions:
+  endpoints:
+    handler: src/index.endpoints
+    memorySize: 128
+    timeout: 30
+    name: ${self:service}-endpoints-${self:custom.settings.stage}
+    role: customRoleLambda
+    events:
+      - http:
+          path: /
+          method: post
+  basicFunctionsHello:
+    handler: src/modules/basic/functions/index.hello
+    name: ${self:service}-basic-functions-hello-${self:provider.stage}
+    timeout: 30
+    reservedConcurrency: 10
+    environment:  
+      stage: ${self:provider.stage}
+    events:
+      - sqs:
+          Fn::GetAtt:
+            - Queue
+            - Arn
+          batchSize: 1
+          enabled: true
+  basicSchedulesHello:
+    handler: src/modules/basic/schedules/index.hello
+    name: ${self:service}-basic-schedules-hello-${self:provider.stage}
+    timeout: 900
+    reservedConcurrency: 1
+    environment:
+      stage: ${self:provider.stage}
+    events:
+      - schedule:
+          name: ${self:service}-basic-schedules-hello-${self:provider.stage}
+          description: "basicSchedulesHello"
+          rate: rate(1 minutes)
+          enabled: true
