@@ -1,4 +1,4 @@
-service: api
+service: basic
 frameworkVersion: '2'
 useDotenv: true
 provider:
@@ -8,6 +8,11 @@ provider:
   memorySize: 128
   region: ${opt:region, 'us-east-1'}
   lambdaHashingVersion: '20201221'
+  deploymentBucket:
+    blockPublicAccess: true
+    skipPolicySetup: false
+    name: serverless-basic-deploys
+    maxPreviousDeploymentArtifacts: 10  
 plugins:
   - serverless-dotenv-plugin
   - serverless-webpack
@@ -18,8 +23,6 @@ plugins:
 custom:
   settings:
     region: '#{AWS::Region}'
-    accountId: AKIAVMY5N4YEYU63FBEZ
-    # accountId: AKIAVMY5N4YET2KW77FF
     stage: ${opt:stage, 'dev'}
     debug: true
   webpack:
@@ -121,9 +124,10 @@ functions:
       stage: ${self:provider.stage}
     events:
       - sqs:
-          Fn::GetAtt:
-            - Queue
-            - Arn
+          arn:
+            Fn::GetAtt:
+              - Queue
+              - Arn
           batchSize: 1
           enabled: true
   basicSchedulesHello:
