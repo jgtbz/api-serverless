@@ -11,7 +11,7 @@ provider:
   deploymentBucket:
     blockPublicAccess: true
     skipPolicySetup: false
-    name: serverless-basic-deploys
+    name: api-serverless-basic
     maxPreviousDeploymentArtifacts: 10  
 plugins:
   - serverless-dotenv-plugin
@@ -24,6 +24,7 @@ custom:
   settings:
     region: '#{AWS::Region}'
     stage: ${opt:stage, 'dev'}
+    accountId: '#{AWS::AccountId}'
     debug: true
   webpack:
     packager: 'npm'
@@ -44,18 +45,16 @@ resources:
     Subscription:
       Type: AWS::SNS::Subscription
       Properties:
-        TopicArn:
-          Fn::GetAtt:
-            - Topic
+        TopicArn: !Ref Topic
         Endpoint:
           Fn::GetAtt:
             - Queue
             - Arn
         Protocol: sqs
-    customRoleLambda:
+    basicRole:
       Type: AWS::IAM::Role
       Properties:
-        RoleName: customRole-${self:custom.settings.stage}
+        RoleName: basic-role-${self:custom.settings.stage}
         AssumeRolePolicyDocument:
           Version: '2012-10-17'
           Statement:
@@ -65,7 +64,7 @@ resources:
                   - lambda.amazonaws.com
               Action: sts:AssumeRole
         Policies:
-          - PolicyName: custom-role-${self:custom.settings.stage}
+          - PolicyName: basic-role-${self:custom.settings.stage}
             PolicyDocument:
               Version: '2012-10-17'
               Statement:
@@ -110,7 +109,7 @@ functions:
     memorySize: 128
     timeout: 30
     name: ${self:service}-endpoints-${self:custom.settings.stage}
-    role: customRoleLambda
+    role: basicRole
     events:
       - http:
           path: /
@@ -139,7 +138,5 @@ functions:
       stage: ${self:provider.stage}
     events:
       - schedule:
-          name: ${self:service}-basic-schedules-hello-${self:provider.stage}
-          description: "basicSchedulesHello"
-          rate: rate(1 minutes)
+          rate: rate(1 minute)
           enabled: true
