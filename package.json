@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "serve": "./node_modules/.bin/serverless offline start",
-    "deploy-dev": "./node_modules/.bin/serverless deploy -s dev"
+    "deploy-dev": "./node_modules/.bin/serverless deploy -s dev",
+    "remove-dev": "./node_modules/.bin/serverless remove -s dev"
   },
   "author": "",
   "license": "ISC",

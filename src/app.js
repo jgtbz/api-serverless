@@ -2,16 +2,10 @@ import AWS from 'aws-sdk'
 import config from './config'
 
 const sendSNS = async ({ topic, message }) => {
-  AWS.config.update({
-    region: config.aws.region,
-    accessKeyId: config.aws.accessKey,
-    secretAccessKey: config.aws.secretAccessKey
-  })
-
   const Message = typeof(message) === 'string'
     ? message
     : JSON.stringify(message)
-  const TopicArn =  `arn:aws:sns:${config.aws.region}:${config.aws.id}:${topic}-${config.stage}`
+  const TopicArn =  `arn:aws:sns:us-east-1:371039528457:basic-${topic}-${config.stage}`
 
   const params = {
     Message,
@@ -23,7 +17,8 @@ const sendSNS = async ({ topic, message }) => {
     params
   })
 
-  await new AWS.SNS().publish(params).promise()
+  const data = await new AWS.SNS().publish(params).promise()
+  console.log(data)
 }
 
 export {

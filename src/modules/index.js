@@ -1,10 +1,10 @@
-import * as basicEndpoints from './basic/endpoints'
+import * as usersEndpoints from './users/endpoints'
 
 const endpoints = {
-  basic: basicEndpoints
+  users: usersEndpoints
 }
 
-const getEndpoint = ({ module, endpoint }) => endpoints[module]?.[endpoint]
+const getEndpoint = ({ module, endpoint }) => endpoints[module]?.[endpoint] || {}
 
 export default {
   getEndpoint

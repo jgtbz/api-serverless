@@ -6,6 +6,12 @@ export default async (event, context) => {
     const { body, headers } = event
     const { module, endpoint, payload } = JSON.parse(body)
 
+    console.log({
+      module,
+      endpoint,
+      payload
+    })
+
     const execute = Modules.getEndpoint({ module, endpoint })
 
     if (!execute) {
