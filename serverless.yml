@@ -39,4 +39,4 @@ resources:
 functions:
   - ${file(../serverless.endpoints.yml)}
   - ${file(../serverless.modules.schedules.yml)}
-  - ${file(../serverless.modules.queues.yml)}
+  - ${file(../serverless.modules.consumers.yml)}
