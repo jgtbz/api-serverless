@@ -1,0 +1,47 @@
+UsersCreate:
+  Type: AWS::SNS::Topic
+  Properties:
+    TopicName: ${self:service}-users-create-${self:provider.stage}
+UsersBirthday:
+  Type: AWS::SNS::Topic
+  Properties:
+    TopicName: ${self:service}-users-birthday-${self:provider.stage}
+UsersCreateWallet:
+  Type: AWS::SQS::Queue
+  Properties:
+    QueueName: ${self:service}-users-create-wallet-${self:provider.stage}
+UsersSendEmailWelcome:
+  Type: AWS::SQS::Queue
+  Properties:
+    QueueName: ${self:service}-users-send-email-welcome-${self:provider.stage}
+UsersSendSMSBirthdate:
+  Type: AWS::SQS::Queue
+  Properties:
+    QueueName: ${self:service}-users-send-sms-birthdate-${self:provider.stage}
+UsersCreateWalletSubscription:
+  Type: AWS::SNS::Subscription
+  Properties:
+    TopicArn: !Ref UsersCreate
+    Endpoint:
+      Fn::GetAtt:
+        - UsersCreateWallet
+        - Arn
+    Protocol: sqs
+UsersSendEmailWelcomeSubscription:
+  Type: AWS::SNS::Subscription
+  Properties:
+    TopicArn: !Ref UsersCreate
+    Endpoint:
+      Fn::GetAtt:
+        - UsersSendEmailWelcome
+        - Arn
+    Protocol: sqs
+UsersSendSMSBirthdateSubscription:
+  Type: AWS::SNS::Subscription
+  Properties:
+    TopicArn: !Ref UsersBirthday
+    Endpoint:
+      Fn::GetAtt:
+        - UsersSendSMSBirthdate
+        - Arn
+    Protocol: sqs
